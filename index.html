@@ -186,6 +186,12 @@
             });
         }
 
+        function addRow() {
+            const newRow = ["", "", "", "", "", "", ""];
+            quadrantData.push(newRow);
+            renderQuadrant('admin');
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const data = await fetchQuadrantData();
@@ -198,3 +204,4 @@
     </script>
 </body>
 </html>
+
