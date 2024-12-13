@@ -107,24 +107,51 @@
     </div>
 
     <script>
-        const GITHUB_API_URL = 'https://yeray2001.github.io/Filas_app/datos.json';
+        const GITHUB_API_URL = 'https://api.github.com/repos/Yeray2001/Filas_app/contents/datos.json';
+        const GITHUB_TOKEN = 'TU_TOKEN_PERSONAL'; // Reemplaza con tu token personal
         let quadrantData = [];
         let currentUser = '';
 
         async function fetchQuadrantData() {
             try {
-                const response = await fetch(GITHUB_API_URL);
+                const response = await fetch(GITHUB_API_URL, {
+                    headers: {
+                        Authorization: `token ${GITHUB_TOKEN}`
+                    }
+                });
 
                 if (!response.ok) {
                     throw new Error(`HTTP Error: ${response.status}`);
                 }
 
-                const data = await response.json();
-                return data;
+                const fileData = await response.json();
+                const decodedContent = atob(fileData.content);
+                const data = JSON.parse(decodedContent);
+                return { data, sha: fileData.sha };
             } catch (error) {
                 console.error('Error al obtener los datos:', error);
-                alert('No se pudo acceder al archivo data.json. Verifica la configuración.');
+                alert('No se pudo acceder al archivo datos.json. Verifica la configuración.');
                 throw error;
+            }
+        }
+
+        async function updateQuadrantData(newData, sha) {
+            try {
+                const updatedContent = btoa(JSON.stringify(newData, null, 2));
+                await fetch(GITHUB_API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `token ${GITHUB_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'Actualizar datos del cuadrante',
+                        content: updatedContent,
+                        sha: sha
+                    })
+                });
+            } catch (error) {
+                console.error('Error al actualizar los datos:', error);
             }
         }
 
@@ -136,7 +163,7 @@
             }
 
             try {
-                const data = await fetchQuadrantData();
+                const { data } = await fetchQuadrantData();
                 currentUser = username;
 
                 if (!data[currentUser]) {
@@ -173,8 +200,11 @@
                         const input = document.createElement('input');
                         input.type = 'text';
                         input.value = cell;
-                        input.oninput = (e) => {
+                        input.oninput = async (e) => {
                             quadrantData[rowIndex][colIndex] = e.target.value;
+                            const { data, sha } = await fetchQuadrantData();
+                            data[currentUser] = quadrantData;
+                            await updateQuadrantData(data, sha);
                         };
                         td.appendChild(input);
                     } else {
@@ -186,15 +216,18 @@
             });
         }
 
-        function addRow() {
+        async function addRow() {
             const newRow = ["", "", "", "", "", "", ""];
             quadrantData.push(newRow);
+            const { data, sha } = await fetchQuadrantData();
+            data[currentUser] = quadrantData;
+            await updateQuadrantData(data, sha);
             renderQuadrant('admin');
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const data = await fetchQuadrantData();
+                const { data } = await fetchQuadrantData();
                 quadrantData = data[currentUser] || [];
                 renderQuadrant('user');
             } catch (error) {
@@ -203,5 +236,7 @@
         });
     </script>
 </body>
+</html>
+
 </html>
 
